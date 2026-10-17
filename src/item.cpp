@@ -1098,6 +1098,14 @@ void Item::serializeTVPFormat(PropWriteStream& propWriteStream) const
 	propWriteStream.write<uint16_t>(getID());
 	propWriteStream.write<uint16_t>(0); // attr begin
 	serializeAttr(propWriteStream);
+
+	// Unique ids come from the map editor and serializeAttr() leaves them out, so map.tvpm lost every map
+	// item's unique id. Player items never carry one (items with a unique id can't be picked up).
+	if (hasAttribute(ITEM_ATTRIBUTE_UNIQUEID)) {
+		propWriteStream.write<uint8_t>(ATTR_UNIQUE_ID);
+		propWriteStream.write<uint16_t>(getUniqueId());
+	}
+
 	propWriteStream.write<uint16_t>(0); // attr end
 
 	if (const Container* container = getContainer()) {
