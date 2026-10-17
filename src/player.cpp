@@ -1761,7 +1761,7 @@ BlockType_t Player::blockHit(Creature* attacker, CombatType_t combatType, int32_
 			if (field) {
 				const int16_t fieldAbsorbPercent = it.abilities->fieldAbsorbPercent[combatTypeToIndex(combatType)];
 				if (fieldAbsorbPercent != 0) {
-					damage = (100 - absorbPercent) * damage / 100;
+					damage = (100 - fieldAbsorbPercent) * damage / 100;
 
 					uint16_t charges = item->getCharges();
 					if (charges != 0) {
