@@ -155,6 +155,10 @@ MapDataLoadResult_t IOMap::loadMapData()
 			if (houseId != 0) {
 				House* house = g_game.map.houses.addHouse(houseId);
 				tile->setHouse(house);
+				// Register the tile with its house like the OTBM loader does. Without this, after booting
+				// from map.tvpm every house has no tiles: .tvph snapshots are saved empty, house size is 0
+				// and evicted owners' items are not moved to the depot.
+				house->addTile(tile);
 			}
 
 			uint32_t tileFlags = 0;
