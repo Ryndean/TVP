@@ -11,18 +11,29 @@ CreatureEvents::CreatureEvents() : scriptInterface("CreatureScript Interface") {
 
 void CreatureEvents::clear()
 {
-	creatureEvents.clear();
+	// Do NOT erase the map. creatureEvents stores CreatureEvent by value, and every creature keeps raw
+	// CreatureEvent* in Creature::eventsList (handed out by registerCreatureEvent). Destroying the nodes left
+	// every online creature holding dangling pointers, and the next onLogin/onThink/onAttack to fire was a
+	// use-after-free: /reload scripts crashed the server with players online.
+	//
+	// Marking each event unloaded is exactly the state registerLuaEvent() looks for: it finds the existing
+	// entry by name and refills it in place via copyEvent(), so the object's address never changes and
+	// creature pointers stay valid across a reload. Creature::getCreatureEvents() already skips events that
+	// are not loaded, so an event whose script disappeared simply stays inert.
+	for (auto& it : creatureEvents) {
+		it.second.clearEvent();
+	}
 
 	getScriptInterface().reInitState();
 }
 
 void CreatureEvents::removeInvalidEvents()
 {
-	for (auto it = creatureEvents.begin(); it != creatureEvents.end(); ++it) {
-		if (it->second.getScriptId() == 0) {
-			creatureEvents.erase(it->second.getName());
-		}
-	}
+	// Deliberately a no-op. Events whose script is gone stay in the map as unloaded entries, which
+	// Creature::getCreatureEvents() filters out, so they can never run. Erasing them would free objects that
+	// creatures may still point at (the use-after-free clear() avoids). The previous implementation also
+	// erased the element its iterator pointed at and then incremented that invalidated iterator, which was
+	// undefined behaviour of its own.
 }
 
 LuaScriptInterface& CreatureEvents::getScriptInterface() { return scriptInterface; }
