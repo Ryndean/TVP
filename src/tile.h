@@ -161,6 +161,8 @@ public:
 
 	Door* getDoorItem() const;
 	MagicField* getFieldItem() const;
+	// The magic field lying on top of this (down) item, if any: items under a field can't be moved
+	MagicField* getFieldAbove(const Item* item) const;
 	Teleport* getTeleportItem() const;
 	TrashHolder* getTrashHolder() const;
 	Mailbox* getMailbox() const;

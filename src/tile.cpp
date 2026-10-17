@@ -184,6 +184,30 @@ MagicField* Tile::getFieldItem() const
 	return nullptr;
 }
 
+MagicField* Tile::getFieldAbove(const Item* item) const
+{
+	if (!hasFlag(TILESTATE_MAGICFIELD)) {
+		return nullptr;
+	}
+
+	const TileItemVector* items = getItemList();
+	if (!items) {
+		return nullptr;
+	}
+
+	// Down items are stored top first, so anything before the item in the list lies on top of it
+	for (auto it = items->getBeginDownItem(), end = items->getEndDownItem(); it != end; ++it) {
+		if (*it == item) {
+			return nullptr;
+		}
+
+		if (MagicField* field = (*it)->getMagicField()) {
+			return field;
+		}
+	}
+	return nullptr;
+}
+
 TrashHolder* Tile::getTrashHolder() const
 {
 	if (!hasFlag(TILESTATE_TRASHHOLDER)) {

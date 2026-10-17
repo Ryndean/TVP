@@ -243,6 +243,11 @@ Thing* Game::internalGetThing(Player* player, const Position& pos, int32_t index
 				if (thing) {
 					Item* item = thing->getItem();
 					if (item && item->isMoveable()) {
+						// Nothing can be moved out from under a field (fire, energy, poison, ...): the client
+						// picks the stack position, so return the field itself, which is not moveable
+						if (MagicField* field = tile->getFieldAbove(item)) {
+							return field;
+						}
 						thing = item;
 					} else {
 						thing = tile->getBottomVisibleCreature(player);
@@ -258,6 +263,14 @@ Thing* Game::internalGetThing(Player* player, const Position& pos, int32_t index
 
 			case STACKPOS_USEITEM: {
 				thing = tile->getUseItem();
+				// A container under a field can't be opened either (its contents could be taken out)
+				if (Item* item = thing ? thing->getItem() : nullptr) {
+					if (item->getContainer()) {
+						if (MagicField* field = tile->getFieldAbove(item)) {
+							return field;
+						}
+					}
+				}
 				break;
 			}
 
