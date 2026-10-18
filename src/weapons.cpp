@@ -574,8 +574,11 @@ bool WeaponDistance::useWeapon(Player* player, Item* item, Creature* target) con
 		const Item *shield, *weapon;
 		player->getShieldAndWeapon(shield, weapon);
 
-		if (shield) {
-			if (target && target->blockCount > 0) {
+		// 7.7 quirk: a hit from a thrower wearing a shield uses up the target's defense turn without blocking anything
+		if (shield && target) {
+			if (g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS)) {
+				target->useDefenseTurn();
+			} else if (target->blockCount > 0) {
 				target->blockCount--;
 			}
 		}
