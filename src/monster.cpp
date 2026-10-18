@@ -556,7 +556,8 @@ void Monster::onCreatureLeave(Creature* creature)
 
 BlockType_t Monster::blockHit(Creature* attacker, CombatType_t combatType, int32_t& damage,
                               bool checkDefense /* = false*/, bool checkArmor /* = false*/, bool /* field = false */,
-                              bool /* ignoreResistances = false */, bool meleeHit /*= false*/)
+                              bool /* ignoreResistances = false */, bool meleeHit /*= false*/,
+                              bool /* halveDamage = false */)
 {
 	BlockType_t blockType =
 	    Creature::blockHit(attacker, combatType, damage, checkDefense, checkArmor, false, false, meleeHit);

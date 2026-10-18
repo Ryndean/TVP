@@ -4135,11 +4135,17 @@ BlockType_t Game::combatBlockHit(CombatDamage& damage, Creature* attacker, Creat
 		}
 	};
 
+	// classic combat halves player vs player damage inside blockHit, after the defense and before the armor, as
+	// 7.7 did (Combat halves it afterwards otherwise); conditions are never halved
+	const bool halveDamage = g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS) &&
+	                         damage.origin != ORIGIN_CONDITION && attacker && attacker != target &&
+	                         attacker->getPlayer() && target->getPlayer();
+
 	BlockType_t blockType;
 	if (damage.type != COMBAT_NONE) {
 		damage.value = -damage.value;
 		blockType = target->blockHit(attacker, damage.type, damage.value, checkDefense, checkArmor, field,
-		                             ignoreResistances, meleeHit);
+		                             ignoreResistances, meleeHit, halveDamage);
 
 		damage.value = -damage.value;
 

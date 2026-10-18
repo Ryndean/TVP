@@ -185,7 +185,7 @@ public:
 	virtual bool setAttackedCreature(Creature* creature);
 	virtual BlockType_t blockHit(Creature* attacker, CombatType_t combatType, int32_t& damage,
 	                             bool checkDefense = false, bool checkArmor = false, bool field = false,
-	                             bool ignoreResistances = false, bool meleeHit = false);
+	                             bool ignoreResistances = false, bool meleeHit = false, bool halveDamage = false);
 
 	bool setMaster(Creature* newMaster);
 
@@ -417,6 +417,15 @@ protected:
 
 	void onCreatureDisappear(const Creature* creature, bool isLogout);
 	virtual void doAttacking() {}
+
+	// classic combat: a creature defends at most twice in any 2 s, however many attackers it has (each defense
+	// waits 2 s after the one before the previous); returns whether this hit gets a defense and uses it up if so
+	bool useDefenseTurn();
+	// damage taken off by worn protection items; classic combat applies it before the armor, as 7.7 did
+	virtual BlockType_t absorbDamage(CombatType_t, int32_t&, bool /*field*/, bool /*ignoreResistances*/)
+	{
+		return BLOCK_NONE;
+	}
 
 	virtual uint64_t getLostExperience() const { return 0; }
 	virtual void dropLoot(Container*, Creature*) {}

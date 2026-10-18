@@ -856,9 +856,10 @@ void Combat::doTargetCombat(Creature* caster, Creature* target, CombatDamage& da
 			}
 
 			if (casterPlayer) {
+				// classic combat already halved it in combatBlockHit, before the armor
 				Player* targetPlayer = target ? target->getPlayer() : nullptr;
 				if (damage.value != 0 && targetPlayer && casterPlayer != targetPlayer &&
-				    damage.type != COMBAT_HEALING) {
+				    damage.type != COMBAT_HEALING && !g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS)) {
 					damage.value /= 2;
 				}
 
@@ -1030,9 +1031,13 @@ void Combat::doAreaCombat(Creature* caster, const Position& position, const Area
 			                                  // combat or not, so we can't modify the initial damage.
 
 			if (casterPlayer) {
+				// classic combat halves it in combatBlockHit instead, before the armor (mana drain doesn't go through
+				// there)
 				Player* targetPlayer = creature->getPlayer();
 				if (damageCopy.value != 0 && targetPlayer && casterPlayer != targetPlayer &&
-				    damage.type != COMBAT_HEALING) {
+				    damage.type != COMBAT_HEALING &&
+				    (!g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS) ||
+				     damageCopy.type == COMBAT_MANADRAIN)) {
 					damageCopy.value /= 2;
 				}
 			}

@@ -1704,10 +1704,11 @@ bool Player::hasShield() const
 
 BlockType_t Player::blockHit(Creature* attacker, CombatType_t combatType, int32_t& damage,
                              bool checkDefense /* = false*/, bool checkArmor /* = false*/, bool field /* = false*/,
-                             bool ignoreResistances /* = false*/, bool meleeHit /*= false*/)
+                             bool ignoreResistances /* = false*/, bool meleeHit /*= false*/,
+                             bool halveDamage /*= false*/)
 {
-	BlockType_t blockType =
-	    Creature::blockHit(attacker, combatType, damage, checkDefense, checkArmor, field, ignoreResistances, meleeHit);
+	BlockType_t blockType = Creature::blockHit(attacker, combatType, damage, checkDefense, checkArmor, field,
+	                                           ignoreResistances, meleeHit, halveDamage);
 
 	if (attacker) {
 		sendCreatureSquare(attacker, SQ_COLOR_BLACK);
@@ -1722,53 +1723,11 @@ BlockType_t Player::blockHit(Creature* attacker, CombatType_t combatType, int32_
 		return BLOCK_ARMOR;
 	}
 
-	if (!ignoreResistances) {
-		for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_AMMO; ++slot) {
-			if (!isItemAbilityEnabled(static_cast<slots_t>(slot))) {
-				continue;
-			}
-
-			Item* item = inventory[slot];
-			if (!item) {
-				continue;
-			}
-
-			const ItemType& it = Item::items[item->getID()];
-			if (!it.abilities) {
-				if (damage <= 0) {
-					damage = 0;
-					return BLOCK_ARMOR;
-				}
-
-				continue;
-			}
-
-			const int16_t absorbPercent = it.abilities->absorbPercent[combatTypeToIndex(combatType)];
-			if (absorbPercent != 0) {
-				damage = (100 - absorbPercent) * damage / 100;
-
-				uint16_t charges = item->getCharges();
-				if (charges != 0) {
-					g_game.transformItem(item, item->getID(), charges - 1);
-				}
-
-				if (damage <= 0) {
-					damage = 0;
-					return BLOCK_IMMUNITY;
-				}
-			}
-
-			if (field) {
-				const int16_t fieldAbsorbPercent = it.abilities->fieldAbsorbPercent[combatTypeToIndex(combatType)];
-				if (fieldAbsorbPercent != 0) {
-					damage = (100 - fieldAbsorbPercent) * damage / 100;
-
-					uint16_t charges = item->getCharges();
-					if (charges != 0) {
-						g_game.transformItem(item, item->getID(), charges - 1);
-					}
-				}
-			}
+	// classic combat already let the protection items absorb inside Creature::blockHit, before the armor
+	if (!g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS)) {
+		blockType = absorbDamage(combatType, damage, field, ignoreResistances);
+		if (blockType != BLOCK_NONE) {
+			return blockType;
 		}
 	}
 
@@ -1777,6 +1736,62 @@ BlockType_t Player::blockHit(Creature* attacker, CombatType_t combatType, int32_
 		blockType = BLOCK_ARMOR;
 	}
 	return blockType;
+}
+
+BlockType_t Player::absorbDamage(CombatType_t combatType, int32_t& damage, bool field, bool ignoreResistances)
+{
+	if (ignoreResistances) {
+		return BLOCK_NONE;
+	}
+
+	for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_AMMO; ++slot) {
+		if (!isItemAbilityEnabled(static_cast<slots_t>(slot))) {
+			continue;
+		}
+
+		Item* item = inventory[slot];
+		if (!item) {
+			continue;
+		}
+
+		const ItemType& it = Item::items[item->getID()];
+		if (!it.abilities) {
+			if (damage <= 0) {
+				damage = 0;
+				return BLOCK_ARMOR;
+			}
+
+			continue;
+		}
+
+		const int16_t absorbPercent = it.abilities->absorbPercent[combatTypeToIndex(combatType)];
+		if (absorbPercent != 0) {
+			damage = (100 - absorbPercent) * damage / 100;
+
+			uint16_t charges = item->getCharges();
+			if (charges != 0) {
+				g_game.transformItem(item, item->getID(), charges - 1);
+			}
+
+			if (damage <= 0) {
+				damage = 0;
+				return BLOCK_IMMUNITY;
+			}
+		}
+
+		if (field) {
+			const int16_t fieldAbsorbPercent = it.abilities->fieldAbsorbPercent[combatTypeToIndex(combatType)];
+			if (fieldAbsorbPercent != 0) {
+				damage = (100 - fieldAbsorbPercent) * damage / 100;
+
+				uint16_t charges = item->getCharges();
+				if (charges != 0) {
+					g_game.transformItem(item, item->getID(), charges - 1);
+				}
+			}
+		}
+	}
+	return BLOCK_NONE;
 }
 
 uint32_t Player::getIP() const

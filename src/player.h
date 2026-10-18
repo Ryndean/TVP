@@ -382,7 +382,8 @@ public:
 	bool isPzLocked() const { return pzLocked; }
 	BlockType_t blockHit(Creature* attacker, CombatType_t combatType, int32_t& damage, bool checkDefense = false,
 	                     bool checkArmor = false, bool field = false, bool ignoreResistances = false,
-	                     bool meleeHit = false) override;
+	                     bool meleeHit = false, bool halveDamage = false) override;
+	BlockType_t absorbDamage(CombatType_t combatType, int32_t& damage, bool field, bool ignoreResistances) override;
 	void doAttacking() override;
 
 	uint16_t getSpecialSkill(uint8_t skill) const { return std::max<int32_t>(0, varSpecialSkills[skill]); }

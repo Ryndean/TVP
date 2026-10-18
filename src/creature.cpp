@@ -509,25 +509,34 @@ void Creature::drainHealth(Creature* attacker, int32_t damage)
 	}
 }
 
+bool Creature::useDefenseTurn()
+{
+	if (OTSYS_TIME() < static_cast<int64_t>(earliestDefendTime)) {
+		return false;
+	}
+
+	earliestDefendTime = lastDefense + 2000;
+	lastDefense = OTSYS_TIME();
+	return true;
+}
+
 BlockType_t Creature::blockHit(Creature* attacker, CombatType_t combatType, int32_t& damage,
-                               bool checkDefense /* = false */, bool checkArmor /* = false */, bool /* field = false */,
-                               bool /* ignoreResistances = false */, bool meleeHit /* = false*/)
+                               bool checkDefense /* = false */, bool checkArmor /* = false */, bool field /* = false */,
+                               bool ignoreResistances /* = false */, bool meleeHit /* = false*/,
+                               bool halveDamage /* = false*/)
 {
 	BlockType_t blockType = BLOCK_NONE;
+	const bool classicCombat = g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS);
 
 	if (isImmune(combatType)) {
 		damage = 0;
 		blockType = BLOCK_IMMUNITY;
-	} else if (checkDefense || checkArmor) {
+	} else if (checkDefense || checkArmor || classicCombat) {
 		bool hasDefense = false;
 
 		if (checkDefense) {
-			if (g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS)) {
-				if (OTSYS_TIME() >= static_cast<int64_t>(earliestDefendTime)) {
-					hasDefense = true;
-					earliestDefendTime = lastDefense + 2000;
-					lastDefense = OTSYS_TIME();
-				}
+			if (classicCombat) {
+				hasDefense = useDefenseTurn();
 			} else {
 				if (blockCount > 0) {
 					--blockCount;
@@ -539,7 +548,7 @@ BlockType_t Creature::blockHit(Creature* attacker, CombatType_t combatType, int3
 		if (checkDefense && hasDefense && canUseDefense) {
 			const int32_t defense = getDefense();
 
-			if (g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS)) {
+			if (classicCombat) {
 				damage -= defense;
 			} else {
 				damage -= uniform_random(defense / 2, defense);
@@ -552,10 +561,23 @@ BlockType_t Creature::blockHit(Creature* attacker, CombatType_t combatType, int3
 			}
 		}
 
+		// 7.7 order after the defense: player vs player damage is halved (rounded up), then protection items take
+		// their share, then the armor
+		if (classicCombat && blockType == BLOCK_NONE && damage > 0) {
+			if (halveDamage) {
+				damage = (damage + 1) / 2;
+			}
+
+			blockType = absorbDamage(combatType, damage, field, ignoreResistances);
+			if (blockType != BLOCK_NONE) {
+				checkArmor = false;
+			}
+		}
+
 		if (checkArmor) {
 			const int32_t armor = getArmor();
 
-			if (g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS)) {
+			if (classicCombat) {
 				damage -= armor;
 			} else {
 				if (armor > 3) {
@@ -571,7 +593,7 @@ BlockType_t Creature::blockHit(Creature* attacker, CombatType_t combatType, int3
 			}
 		}
 
-		if (hasDefense && blockType != BLOCK_NONE) {
+		if (hasDefense && (blockType == BLOCK_DEFENSE || blockType == BLOCK_ARMOR)) {
 			onBlockHit();
 		}
 	}

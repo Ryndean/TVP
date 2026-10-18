@@ -135,7 +135,7 @@ public:
 
 	BlockType_t blockHit(Creature* attacker, CombatType_t combatType, int32_t& damage, bool checkDefense = false,
 	                     bool checkArmor = false, bool field = false, bool ignoreResistances = false,
-	                     bool meleeHit = false) override;
+	                     bool meleeHit = false, bool halveDamage = false) override;
 
 	bool isInSpawnRange(const Position& pos) const;
 
