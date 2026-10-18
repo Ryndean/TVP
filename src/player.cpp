@@ -292,7 +292,8 @@ void Player::getShieldAndWeapon(const Item*& shield, const Item*& weapon) const
 int32_t Player::getDefense() const
 {
 	int32_t defenseSkill = getSkillLevel(SKILL_FIST);
-	int32_t defenseValue = 7;
+	// bare hands: 7.7 used the human race's defend value (5)
+	int32_t defenseValue = g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS) ? 5 : 7;
 	const Item* weapon;
 	const Item* shield;
 	getShieldAndWeapon(shield, weapon);
