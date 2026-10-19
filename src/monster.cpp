@@ -311,7 +311,7 @@ void Monster::onRemoveCreature(Creature* creature, bool isLogout)
 	if (creature == this) {
 		if (spawn) {
 			spawn->decreaseMonsterCount();
-			spawn->startSpawnCheck(Spawns::calculateSpawnDelay(spawnInterval));
+			spawn->startSpawnCheck(spawnInterval); // startSpawnCheck applies calculateSpawnDelay
 		}
 
 		setIdle(true);
@@ -744,7 +744,7 @@ void Monster::onIdleStimulus()
 	if (getMasterPos().x != 0 && !Position::areInRange<8, 8, 0>(getPosition(), getMasterPos())) {
 		if (spawn && isHostile() && g_config.getBoolean(ConfigManager::ALLOW_MONSTER_OVERSPAWN)) {
 			spawn->decreaseMonsterCount();
-			spawn->startSpawnCheck(Spawns::calculateSpawnDelay(spawnInterval));
+			spawn->startSpawnCheck(spawnInterval); // startSpawnCheck applies calculateSpawnDelay
 			originalSpawn = spawn;
 			spawn = nullptr;
 		}
