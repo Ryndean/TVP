@@ -577,7 +577,10 @@ bool WeaponDistance::useWeapon(Player* player, Item* item, Creature* target) con
 		// 7.7 quirk: a hit from a thrower wearing a shield uses up the target's defense turn without blocking anything
 		if (shield && target) {
 			if (g_config.getBoolean(ConfigManager::USE_CLASSIC_COMBAT_FORMULAS)) {
-				target->useDefenseTurn();
+				// 7.7 rolls the target's full defense here and throws the result away, so the shield trains too
+				if (target->useDefenseTurn() && target->canUseDefense) {
+					target->onBlockHit();
+				}
 			} else if (target->blockCount > 0) {
 				target->blockCount--;
 			}

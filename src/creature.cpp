@@ -593,7 +593,10 @@ BlockType_t Creature::blockHit(Creature* attacker, CombatType_t combatType, int3
 			}
 		}
 
-		if (hasDefense && (blockType == BLOCK_DEFENSE || blockType == BLOCK_ARMOR)) {
+		// the shield trains on every defense roll in classic combat, blocked or not, as in 7.7; otherwise only a
+		// blocked hit trains it
+		if (classicCombat ? (checkDefense && hasDefense && canUseDefense)
+		                  : (hasDefense && (blockType == BLOCK_DEFENSE || blockType == BLOCK_ARMOR))) {
 			onBlockHit();
 		}
 	}
