@@ -239,6 +239,7 @@ bool ConfigManager::load()
 	boolean[SPAWN_ONE_MONSTER_AT_A_TIME] = getGlobalBoolean(L, "spawnOneMonsterAtATime", false);
 	boolean[TILE_OLDSCHOOL_ITEM_STACKING] = getGlobalBoolean(L, "tileOldschoolItemStacking", false);
 	boolean[SPAWN_MULTIFLOOR_RESPAWN_BLOCK] = getGlobalBoolean(L, "spawnMultifloorRespawnBlock", false);
+	boolean[GM_BLOCKS_SPAWNS] = getGlobalBoolean(L, "gmBlocksSpawns", false);
 	boolean[STATS_TRACK_LUA_ADD_EVENTS] = getGlobalBoolean(L, "statsTrackLuaAddEvents", false);
 	boolean[STATS_TRACK_LUA_ADD_EVENTS_HASHES] = getGlobalBoolean(L, "statsTrackLuaAddEventsHashes", false);
 

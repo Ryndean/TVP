@@ -480,17 +480,21 @@ void BaseSpawn::stopSpawnCheck()
 
 bool BaseSpawn::isPlayerAround(const Position& pos)
 {
+	// players on other floors who can see the spawn only block it with spawnMultifloorRespawnBlock, and players
+	// ignored by monsters (gamemasters) only with gmBlocksSpawns (in 7.7 every player blocked spawns)
+	const bool multifloor = g_config.getBoolean(ConfigManager::SPAWN_MULTIFLOOR_RESPAWN_BLOCK);
+	const bool gamemastersBlock = g_config.getBoolean(ConfigManager::GM_BLOCKS_SPAWNS);
+
 	SpectatorVec spectators;
-	g_game.map.getSpectators(spectators, pos, true, true, Map::maxClientViewportX, Map::maxClientViewportX,
+	g_game.map.getSpectators(spectators, pos, multifloor, true, Map::maxClientViewportX, Map::maxClientViewportX,
 	                         Map::maxClientViewportY, Map::maxClientViewportY);
 	for (Creature* spectator : spectators) {
-		if (spectator->canSee(pos) && !spectator->getPlayer()->hasFlag(PlayerFlag_IgnoredByMonsters)) {
-			return true;
+		if (!gamemastersBlock && spectator->getPlayer()->hasFlag(PlayerFlag_IgnoredByMonsters)) {
+			continue;
 		}
 
-		if (g_config.getBoolean(ConfigManager::SPAWN_MULTIFLOOR_RESPAWN_BLOCK)) {
-			// If the client can see the area, it will not allow monsters from spawning.
-			if (spectator->canSee(pos)) return true;
+		if (spectator->canSee(pos)) {
+			return true;
 		}
 	}
 

@@ -164,6 +164,10 @@ tileOldschoolItemStacking = true
 -- Groundfloor player blocks respawning +7 floors above.
 spawnMultifloorRespawnBlock = true
 
+-- Gamemasters (players ignored by monsters) block monster respawns like any player who can see the spawn.
+-- 7.7 let every player block spawns; false lets gamemasters watch spawns without blocking them.
+gmBlocksSpawns = false
+
 -- Tibia 8.1 and less has this as "true"
 -- This means that if a monster is trying to respawn but there is a player around
 -- It will not respawn and the timer will reset to whatever respawn time it has again.
