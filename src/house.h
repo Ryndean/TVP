@@ -18,19 +18,24 @@ class AccessList
 {
 public:
 	void parseList(const std::string& value);
-	void addPlayer(const std::string& name);
-	void addGuild(const std::string& name);
-	void addGuildRank(const std::string& name, const std::string& rankName);
 
 	bool isInList(const Player* player) const;
 
 	void getList(std::string& list) const;
 
 private:
+	// One line of the list, as in 7.7: a player name, "@Guild" (any rank) or "Rank@Guild", each part allowing
+	// the wildcards * and ?. A leading "!" makes the line deny instead of allow; the first matching line decides.
+	struct Rule
+	{
+		std::string name;  // name pattern, for player lines
+		std::string rank;  // rank pattern, empty for any rank
+		std::string guild; // guild pattern, empty for player lines
+		bool deny = false;
+	};
+
 	std::string list;
-	std::unordered_set<uint32_t> playerList;
-	std::unordered_set<uint32_t> guildRankList;
-	bool allowEveryone = false;
+	std::vector<Rule> rules;
 };
 
 class Door final : public Item

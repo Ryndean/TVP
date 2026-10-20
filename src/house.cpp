@@ -444,11 +444,34 @@ bool House::executeTransfer(HouseTransferItem* item, Player* newOwner)
 	return true;
 }
 
+// case-insensitive (both sides are lower case) match with * for any run of characters and ? for one character
+static bool matchesAccessPattern(const std::string& pattern, const std::string& text)
+{
+	size_t p = 0, t = 0, starP = std::string::npos, starT = 0;
+	while (t < text.size()) {
+		if (p < pattern.size() && (pattern[p] == '?' || pattern[p] == text[t])) {
+			++p;
+			++t;
+		} else if (p < pattern.size() && pattern[p] == '*') {
+			starP = p++;
+			starT = t;
+		} else if (starP != std::string::npos) {
+			p = starP + 1;
+			t = ++starT;
+		} else {
+			return false;
+		}
+	}
+
+	while (p < pattern.size() && pattern[p] == '*') {
+		++p;
+	}
+	return p == pattern.size();
+}
+
 void AccessList::parseList(const std::string& value)
 {
-	playerList.clear();
-	guildRankList.clear();
-	allowEveryone = false;
+	rules.clear();
 	list = value;
 	if (list.empty()) {
 		return;
@@ -474,90 +497,58 @@ void AccessList::parseList(const std::string& value)
 
 		toLowerCaseString(line);
 
-		std::string::size_type at_pos = line.find("@");
+		Rule rule;
+		if (line.front() == '!') {
+			rule.deny = true;
+			line.erase(0, 1);
+			trimString(line);
+		}
+
+		std::string::size_type at_pos = line.find('@');
 		if (at_pos != std::string::npos) {
-			if (at_pos == 0) {
-				addGuild(line.substr(1));
-			} else {
-				addGuildRank(line.substr(0, at_pos), line.substr(at_pos + 1));
+			rule.rank = line.substr(0, at_pos);
+			rule.guild = line.substr(at_pos + 1);
+			trimString(rule.rank);
+			trimString(rule.guild);
+			if (rule.guild.empty()) {
+				continue;
 			}
-		} else if (line == "*") {
-			allowEveryone = true;
-		} else if (line.find("!") != std::string::npos || line.find("*") != std::string::npos ||
-		           line.find("?") != std::string::npos) {
-			continue; // regexp no longer supported
 		} else {
-			addPlayer(line);
+			rule.name = line;
 		}
-	}
-}
 
-void AccessList::addPlayer(const std::string& name)
-{
-	Player* player = g_game.getPlayerByName(name);
-	if (player) {
-		playerList.insert(player->getGUID());
-	} else {
-		uint32_t guid = IOLoginData::getGuidByName(name);
-		if (guid != 0) {
-			playerList.insert(guid);
-		}
-	}
-}
-
-namespace {
-
-const Guild* getGuildByName(const std::string& name)
-{
-	uint32_t guildId = IOGuild::getGuildIdByName(name);
-	if (guildId == 0) {
-		return nullptr;
-	}
-
-	const Guild* guild = g_game.getGuild(guildId);
-	if (guild) {
-		return guild;
-	}
-
-	return IOGuild::loadGuild(guildId);
-}
-
-} // namespace
-
-void AccessList::addGuild(const std::string& name)
-{
-	const Guild* guild = getGuildByName(name);
-	if (guild) {
-		for (auto rank : guild->getRanks()) {
-			guildRankList.insert(rank->id);
-		}
-	}
-}
-
-void AccessList::addGuildRank(const std::string& name, const std::string& rankName)
-{
-	const Guild* guild = getGuildByName(name);
-	if (guild) {
-		GuildRank_ptr rank = guild->getRankByName(rankName);
-		if (rank) {
-			guildRankList.insert(rank->id);
+		if (!rule.name.empty() || !rule.guild.empty()) {
+			rules.push_back(std::move(rule));
 		}
 	}
 }
 
 bool AccessList::isInList(const Player* player) const
 {
-	if (allowEveryone) {
-		return true;
+	if (!player || rules.empty()) {
+		return false;
 	}
 
-	auto playerIt = playerList.find(player->getGUID());
-	if (playerIt != playerList.end()) {
-		return true;
-	}
+	const std::string name = asLowerCaseString(player->getName());
+	const Guild* guild = player->getGuild();
+	const GuildRank_ptr rank = player->getGuildRank();
+	const std::string guildName = guild ? asLowerCaseString(guild->getName()) : std::string();
+	const std::string rankName = rank ? asLowerCaseString(rank->name) : std::string();
 
-	GuildRank_ptr rank = player->getGuildRank();
-	return rank && guildRankList.find(rank->id) != guildRankList.end();
+	for (const Rule& rule : rules) {
+		bool match;
+		if (rule.guild.empty()) {
+			match = matchesAccessPattern(rule.name, name);
+		} else {
+			match = guild && matchesAccessPattern(rule.guild, guildName) &&
+			        (rule.rank.empty() || (rank && matchesAccessPattern(rule.rank, rankName)));
+		}
+
+		if (match) {
+			return !rule.deny;
+		}
+	}
+	return false;
 }
 
 void AccessList::getList(std::string& list) const { list = this->list; }
