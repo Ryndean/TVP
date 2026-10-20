@@ -231,7 +231,18 @@ void ProtocolGame::login(const std::string& name, uint32_t accountId, OperatingS
 
 		player->setOperatingSystem(operatingSystem);
 
-		if (!g_game.placeCreature(player, player->getPosition())) {
+		// 7.7: a player who logs in inside a house they no longer have access to (taken off its lists, or the house
+		// changed hands while they were away) appears at the house exit, so they can't take anything from inside
+		Position loginPosition = player->getPosition();
+		if (const Tile* loginTile = g_game.map.getTile(loginPosition)) {
+			if (const House* house = loginTile->getHouse()) {
+				if (!house->isInvited(player)) {
+					loginPosition = house->getEntryPosition();
+				}
+			}
+		}
+
+		if (!g_game.placeCreature(player, loginPosition)) {
 			disconnectClient("Login failed due to corrupt data.");
 			return;
 		}
