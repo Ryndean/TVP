@@ -758,8 +758,15 @@ void Houses::payHouses(RentPeriod_t rentPeriod) const
 			house->setPaidUntil(paidUntil);
 			house->setPayRentWarnings(0);
 		} else {
-			if (house->getPayRentWarnings() < 7) {
-				int32_t daysLeft = 7 - house->getPayRentWarnings();
+			// 7.7: the owner has 7 days after the due date to have the rent in the depot. Counted in real time, so
+			// extra server restarts don't shorten the notice (the warning counter used to tick once per startup).
+			if (house->getPaidUntil() == 0) {
+				house->setPaidUntil(currentTime); // never paid: the notice starts now
+			}
+
+			const time_t deadline = house->getPaidUntil() + 7 * 24 * 60 * 60;
+			if (currentTime < deadline) {
+				const int32_t daysLeft = static_cast<int32_t>(1 + (deadline - currentTime - 3600) / 86400);
 
 				Item* letter = Item::CreateItem(ITEM_LETTER_STAMPED);
 				std::string period;
@@ -786,8 +793,8 @@ void Houses::payHouses(RentPeriod_t rentPeriod) const
 				}
 
 				letter->setText(fmt::format(
-				    "Warning! \nThe {:s} rent of {:d} gold for your house \"{:s}\" is payable. Have it available within {:d} days, or you will lose this house.",
-				    period, houseRent, house->getName(), daysLeft));
+				    "Warning! \nThe {:s} rent of {:d} gold for your house \"{:s}\" is payable. Have it available within {:d} day{:s}, or you will lose this house.",
+				    period, houseRent, house->getName(), daysLeft, daysLeft != 1 ? "s" : ""));
 				player.getDepotLocker(townId, true)->addItem(letter);
 				house->setPayRentWarnings(house->getPayRentWarnings() + 1);
 			} else {
